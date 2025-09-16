@@ -15,6 +15,8 @@ const GameRound: React.FC<GameRoundProps> = ({ teamId }) => {
   const { user } = useAuth();
   const [round, setRound] = useState<Round | null>(null);
   const [userInput, setUserInput] = useState('');
+  const [multiInputs, setMultiInputs] = useState<string[]>([]);
+  const [multiCompleted, setMultiCompleted] = useState<boolean[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -38,6 +40,15 @@ const GameRound: React.FC<GameRoundProps> = ({ teamId }) => {
       const response = await gameAPI.getCurrentRound(teamId);
       if (response.success) {
         setRound(response.round);
+        // Initialize multi-inputs if round has 4 steps (round 3 case)
+        const stepsCount = response.round.totalSteps;
+        if (stepsCount === 4 && response.round.roundNumber === 3) {
+          setMultiInputs(Array(stepsCount).fill(''));
+          setMultiCompleted(Array(stepsCount).fill(false));
+        } else {
+          setMultiInputs([]);
+          setMultiCompleted([]);
+        }
       }
     } catch (error) {
       console.error('Error loading round:', error);
@@ -49,7 +60,15 @@ const GameRound: React.FC<GameRoundProps> = ({ teamId }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!userInput.trim() || !round) return;
+    if (!round) return;
+
+    // Multi-question mode: round 3 with 4 steps, show all inputs at once
+    const isMultiQuestionMode = round.totalSteps === 4 && round.roundNumber === 3;
+
+    if (isMultiQuestionMode) {
+      // In multi-question mode, submission is per-question; ignore form-level submit
+      return;
+    }
 
     setIsValidating(true);
     try {
@@ -189,30 +208,94 @@ const GameRound: React.FC<GameRoundProps> = ({ teamId }) => {
         )}
 
         <form onSubmit={handleSubmit} className="input-section">
-          <div className="input-group">
-            <label htmlFor="answer">
-              Your Answer ({round.currentStep.inputType})
-            </label>
-            <input
-              type="text"
-              id="answer"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder={`Enter your ${round.currentStep.inputType} answer`}
-              disabled={isValidating || round.currentStep.isCompleted}
-              className={round.currentStep.isCompleted ? 'completed' : ''}
-            />
-          </div>
+          {(round.totalSteps === 4 && round.roundNumber === 3) ? (
+            <div className="multi-inputs">
+              {[0,1,2,3].map((idx) => (
+                <div key={idx} className="input-group">
+                  <label>
+                    {`Question ${idx + 1}`}
+                  </label>
+                  <input
+                    type="text"
+                    value={multiInputs[idx] || ''}
+                    onChange={(e) => {
+                      const next = [...multiInputs];
+                      next[idx] = e.target.value;
+                      setMultiInputs(next);
+                    }}
+                    placeholder={`Enter answer ${idx + 1}`}
+                    disabled={isValidating || multiCompleted[idx]}
+                    className={multiCompleted[idx] ? 'completed' : ''}
+                  />
+                  <button
+                    type="button"
+                    className="submit-button"
+                    disabled={isValidating || !multiInputs[idx] || !multiInputs[idx].trim() || multiCompleted[idx]}
+                    onClick={async () => {
+                      if (!round) return;
+                      try {
+                        setIsValidating(true);
+                        const response: ValidationResponse = await gameAPI.validateInput(
+                          teamId,
+                          round.roundNumber,
+                          idx,
+                          (multiInputs[idx] || '').trim()
+                        );
+                        if (response.success) {
+                          const next = [...multiCompleted];
+                          next[idx] = true;
+                          setMultiCompleted(next);
+                          // If all four are completed, show success modal to proceed
+                          if (next.every(Boolean)) {
+                            setSuccessMessage('You are good to go!');
+                            setCanProceed(true);
+                            setShowSuccess(true);
+                          }
+                        } else {
+                          setErrorMessage(response.message);
+                          setShowError(true);
+                        }
+                      } catch (err) {
+                        setErrorMessage('Validation failed. Please try again.');
+                        setShowError(true);
+                      } finally {
+                        setIsValidating(false);
+                      }
+                    }}
+                  >
+                    {multiCompleted[idx] ? 'Correct' : 'Submit'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="input-group">
+                <label htmlFor="answer">
+                  Your Answer ({round.currentStep.inputType})
+                </label>
+                <input
+                  type="text"
+                  id="answer"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  placeholder={`Enter your ${round.currentStep.inputType} answer`}
+                  disabled={isValidating || round.currentStep.isCompleted}
+                  className={round.currentStep.isCompleted ? 'completed' : ''}
+                />
+              </div>
 
-          <button 
-            type="submit" 
-            className="submit-button"
-            disabled={!userInput.trim() || isValidating || round.currentStep.isCompleted}
-          >
-            {isValidating ? 'Validating...' : 
-             round.currentStep.isCompleted ? 'Completed' : 
-             'Submit Answer'}
-          </button>
+              <button 
+                type="submit" 
+                className="submit-button"
+                disabled={!userInput.trim() || isValidating || round.currentStep.isCompleted}
+              >
+                {isValidating ? 'Validating...' : 
+                 round.currentStep.isCompleted ? 'Completed' : 
+                 'Submit Answer'}
+              </button>
+            </>
+          )}
         </form>
 
         {/* Next-round inline section removed; action moved to success modal */}

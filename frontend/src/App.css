@@ -47,6 +47,50 @@ code {
   align-items: center;
 }
 
+.header-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-left { justify-content: flex-start; }
+.header-right { justify-content: flex-end; }
+
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.header-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.header-toolbar {
+  max-width: 1200px;
+  margin: 8px auto 0 auto;
+  padding: 0 20px 8px 20px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
 .app-header h1 {
   font-size: 24px;
   font-weight: 700;
@@ -333,7 +377,6 @@ code {
 @media (max-width: 768px) {
   .header-content {
     padding: 0 16px;
-    flex-direction: column;
     gap: 12px;
   }
   

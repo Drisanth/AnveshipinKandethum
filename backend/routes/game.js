@@ -74,10 +74,14 @@ router.post('/validate', verifyTeamToken, async (req, res) => {
       return res.status(400).json({ message: 'Input is required' });
     }
 
+    // Determine effective round and step (handle 0 correctly)
+    const effectiveRoundNumber = (roundNumber === undefined || roundNumber === null) ? team.currentRound : roundNumber;
+    const effectiveStepNumber = (stepNumber === undefined || stepNumber === null) ? team.currentStep : stepNumber;
+
     // Get round data
     const roundData = await TeamRound.findOne({ 
       teamId: teamId, 
-      roundNumber: roundNumber || team.currentRound 
+      roundNumber: effectiveRoundNumber 
     });
 
     if (!roundData) {
@@ -86,17 +90,17 @@ router.post('/validate', verifyTeamToken, async (req, res) => {
 
     // Get step data
     const stepData = roundData.validationSteps.find(
-      step => step.stepNumber === (stepNumber || team.currentStep)
+      step => step.stepNumber === effectiveStepNumber
     );
 
     if (!stepData) {
       return res.status(404).json({ message: 'Step not found' });
     }
 
-    // Check if step is already completed
+    // Check if this effective step is already completed
     const isStepCompleted = team.completedSteps.some(
-      completed => completed.roundNumber === team.currentRound && 
-                   completed.stepNumber === team.currentStep
+      completed => completed.roundNumber === effectiveRoundNumber && 
+                   completed.stepNumber === effectiveStepNumber
     );
 
     if (isStepCompleted) {
@@ -120,20 +124,22 @@ router.post('/validate', verifyTeamToken, async (req, res) => {
     if (isValid) {
       // Mark step as completed
       team.completedSteps.push({
-        roundNumber: team.currentRound,
-        stepNumber: team.currentStep
+        roundNumber: effectiveRoundNumber,
+        stepNumber: effectiveStepNumber
       });
 
       // Check if this is the last step of the round
-      const isLastStep = team.currentStep >= roundData.validationSteps.length - 1;
+      const isLastStep = effectiveStepNumber >= roundData.validationSteps.length - 1;
       
-      if (isLastStep) {
-        // Round completed, prepare for next round
-        team.currentRound += 1;
-        team.currentStep = 0;
-      } else {
-        // Move to next step
-        team.currentStep += 1;
+      if (effectiveStepNumber === team.currentStep) {
+        if (isLastStep) {
+          // Round completed, prepare for next round
+          team.currentRound += 1;
+          team.currentStep = 0;
+        } else {
+          // Move to next step
+          team.currentStep += 1;
+        }
       }
 
       await team.save();

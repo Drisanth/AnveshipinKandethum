@@ -59,19 +59,27 @@ const AppRoutes: React.FC = () => {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="header-content">
-          <h1>Puzzle Challenge</h1>
-          {userType && (
-            <div className="header-actions">
-              <span className="user-info">
-                {userType === 'team' ? 'Team Mode' : 'Admin Mode'}
-              </span>
-              <button className="logout-button" onClick={logout}>
-                Logout
-              </button>
-            </div>
-          )}
+        <div className="header-content header-grid">
+          <div className="header-left">
+            <img src="/logo1.jpg" alt="Logo 1" className="header-logo" />
+          </div>
+          <div className="header-center">
+            <h1 className="header-title">Anveshipin Kandethum</h1>
+          </div>
+          <div className="header-right">
+            <img src="/logo2.jpg" alt="Logo 2" className="header-logo" />
+          </div>
         </div>
+        {userType && (
+          <div className="header-toolbar">
+            <span className="user-info">
+              {userType === 'team' ? 'Team Mode' : 'Admin Mode'}
+            </span>
+            <button className="logout-button" onClick={logout}>
+              Logout
+            </button>
+          </div>
+        )}
       </header>
 
       <main className="app-main">
