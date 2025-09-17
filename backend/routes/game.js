@@ -23,6 +23,21 @@ router.get('/round/:teamId', verifyTeamToken, async (req, res) => {
       });
     }
 
+    // Handle rounds with no steps (final page/text only)
+    if (!roundData.validationSteps || roundData.validationSteps.length === 0) {
+      return res.json({
+        success: true,
+        round: {
+          roundNumber: roundData.roundNumber,
+          clueType: roundData.clueType,
+          clueContent: roundData.clueContent,
+          currentStep: null,
+          totalSteps: 0,
+          isRoundComplete: true
+        }
+      });
+    }
+
     // Get current step data
     const currentStep = roundData.validationSteps.find(
       step => step.stepNumber === team.currentStep
@@ -128,18 +143,25 @@ router.post('/validate', verifyTeamToken, async (req, res) => {
         stepNumber: effectiveStepNumber
       });
 
-      // Check if this is the last step of the round
-      const isLastStep = effectiveStepNumber >= roundData.validationSteps.length - 1;
-      
-      if (effectiveStepNumber === team.currentStep) {
-        if (isLastStep) {
-          // Round completed, prepare for next round
-          team.currentRound += 1;
+      // Determine completion across the round (order-independent)
+      const completedForRound = team.completedSteps
+        .filter(cs => cs.roundNumber === effectiveRoundNumber)
+        .map(cs => cs.stepNumber);
+      const uniqueCompleted = new Set(completedForRound);
+      const allCompleted = uniqueCompleted.size >= (roundData.validationSteps?.length || 0);
+
+      if (allCompleted) {
+        // Round completed, prepare for next round (clamp to max round index 5)
+        const nextRound = effectiveRoundNumber + 1;
+        if (nextRound > 5) {
+          team.currentRound = 5; // stay on final round index
           team.currentStep = 0;
         } else {
-          // Move to next step
-          team.currentStep += 1;
+          team.currentRound = nextRound;
+          team.currentStep = 0;
         }
+      } else {
+        // Keep currentStep unchanged to allow out-of-order submissions
       }
 
       await team.save();
@@ -149,8 +171,8 @@ router.post('/validate', verifyTeamToken, async (req, res) => {
         message: 'You are good to go!',
         nextClue: stepData.additionalClue,
         nextClueType: stepData.additionalClueType,
-        isLastStep: isLastStep,
-        canProceed: isLastStep
+        isLastStep: allCompleted,
+        canProceed: allCompleted
       });
     } else {
       await team.save();
