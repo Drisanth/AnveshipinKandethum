@@ -2,10 +2,9 @@ const jwt = require('jsonwebtoken');
 const Team = require('../models/Team');
 const Admin = require('../models/Admin');
 
-// Verify JWT token
 const verifyToken = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
-  
+
   if (!token) {
     return res.status(401).json({ message: 'No token provided, access denied' });
   }
@@ -19,48 +18,49 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Verify team token
 const verifyTeamToken = async (req, res, next) => {
-  try {
-    await verifyToken(req, res, () => {});
-    
-    if (req.user.type !== 'team') {
-      return res.status(403).json({ message: 'Access denied. Team token required.' });
+  // Call verifyToken middleware, but properly handle next flow
+  verifyToken(req, res, async (err) => {
+    if (err) {
+      return; // verifyToken already handled the response
     }
-    
-    // Verify team still exists and is active
-    const team = await Team.findOne({ teamId: req.user.teamId, isActive: true });
-    if (!team) {
-      return res.status(403).json({ message: 'Team not found or inactive' });
+    try {
+      if (req.user.type !== 'team') {
+        return res.status(403).json({ message: 'Access denied. Team token required.' });
+      }
+
+      const team = await Team.findOne({ teamId: req.user.teamId, isActive: true });
+      if (!team) {
+        return res.status(403).json({ message: 'Team not found or inactive' });
+      }
+      req.team = team;
+      next();
+    } catch (error) {
+      res.status(401).json({ message: 'Invalid team token' });
     }
-    
-    req.team = team;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid team token' });
-  }
+  });
 };
 
-// Verify admin token
 const verifyAdminToken = async (req, res, next) => {
-  try {
-    await verifyToken(req, res, () => {});
-    
-    if (req.user.type !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admin token required.' });
+  verifyToken(req, res, async (err) => {
+    if (err) {
+      return;
     }
-    
-    // Verify admin still exists and is active
-    const admin = await Admin.findOne({ username: req.user.username, isActive: true });
-    if (!admin) {
-      return res.status(403).json({ message: 'Admin not found or inactive' });
+    try {
+      if (req.user.type !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin token required.' });
+      }
+
+      const admin = await Admin.findOne({ username: req.user.username, isActive: true });
+      if (!admin) {
+        return res.status(403).json({ message: 'Admin not found or inactive' });
+      }
+      req.admin = admin;
+      next();
+    } catch (error) {
+      res.status(401).json({ message: 'Invalid admin token' });
     }
-    
-    req.admin = admin;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid admin token' });
-  }
+  });
 };
 
 module.exports = {
