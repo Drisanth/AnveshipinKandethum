@@ -207,6 +207,8 @@ const GameRound: React.FC<GameRoundProps> = ({ teamId }) => {
           </div>
         )}
 
+        {/* If no steps (final page), do not render input form */}
+        {round.totalSteps === 0 || (round as any).currentStep === null ? null : (
         <form onSubmit={handleSubmit} className="input-section">
           {(round.totalSteps === 4 && round.roundNumber === 3) ? (
             <div className="multi-inputs">
@@ -297,6 +299,7 @@ const GameRound: React.FC<GameRoundProps> = ({ teamId }) => {
             </>
           )}
         </form>
+        )}
 
         {/* Next-round inline section removed; action moved to success modal */}
       </div>
