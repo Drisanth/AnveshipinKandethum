@@ -82,7 +82,7 @@ const GameRound: React.FC<GameRoundProps> = ({ teamId }) => {
       if (response.success) {
         // If final round (round 5) last step is correct, redirect to external link immediately
         if (response.isLastStep && round.roundNumber === 5) {
-          window.location.href = 'https://example.org/completed';
+          window.location.href = 'https://github.com/Drisanth/Files/blob/main/round.png?raw=true';
           return;
         }
 
