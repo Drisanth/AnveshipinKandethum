@@ -135,7 +135,7 @@ const perTeamRounds = {
         {
             roundNumber: 4,
             clueType: 'image',
-            clueContent: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj5usBhA8zgBDaXjp_GOh72chMPo32OTf7swM_sDEvadzIQJLBiZibl5Di5_7GCK_lUoVHDN_TQK5a1yHfhmlIZay3VL-TOaCGo6yO439xJX2MOZO2ILslcCTGY4kHim2b5rfhRbQ4ugDt8qC86w5jRG13VdWYsUzZehJyu_CYscDR3lf4v9Wz5_kbA3cfJ/s1600/prp.png',
+            clueContent: 'https://github.com/Drisanth/Files/blob/main/round4/SJT.png?raw=true',
             validationSteps: [
                 {
                     stepNumber: 0,
